@@ -79,20 +79,20 @@
     function selectFolder(view, $sidebar, folderId) {
         var library = view.controller.state().get('library');
         if (library && library.props) {
-            library.props.set(data.queryArg, folderId);
+            // Set the prop for the record (and so it's included in
+            // props.toJSON() below), but rely on neither an internal
+            // whitelist-triggered auto-refetch nor an "ignore"-prop
+            // listener - both are internal wp.media wiring we can't be
+            // certain exists/behaves the same way across versions. Instead,
+            // fetch directly: the collection's own sync() already sends
+            // props.toJSON() (which now includes bg_folder) as the query
+            // args to the same query-attachments AJAX action, and reset:
+            // true replaces the visible results outright once it resolves.
+            library.props.set(data.queryArg, folderId, { silent: true });
 
-            // wp.media.model.Query only auto-refetches on its own when a
-            // *known* prop changes (search, mime type, orderby, etc.) - it
-            // ignores our custom bg_folder prop otherwise. "ignore" is a
-            // prop core deliberately keeps on that allow-list with no
-            // filtering meaning of its own, specifically as an escape hatch
-            // for forcing a live re-fetch after changing something else it
-            // doesn't watch - so setting it (to any new value) makes the
-            // *existing* collection re-query itself normally, preserving
-            // whatever state-specific context it already had, instead of
-            // us reconstructing a new query from scratch (which breaks
-            // other bound views expecting that original context).
-            library.props.set('ignore', (+new Date()));
+            if (typeof library.fetch === 'function') {
+                library.fetch({ reset: true });
+            }
         }
         setActiveFolder($sidebar, folderId);
         updateGridUrl(folderId);
