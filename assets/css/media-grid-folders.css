@@ -1,11 +1,18 @@
 .attachments-browser.bg-has-folder-sidebar {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 16px;
 }
 .attachments-browser.bg-has-folder-sidebar .bg-grid-main {
     flex: 1 1 auto;
     min-width: 0;
+    /* WordPress positions the attachments grid/uploader absolutely,
+       anchored to .attachments-browser. Wrapping them in this div moved
+       that anchor point, so it needs its own positioning context (and to
+       actually fill the available height, via align-items: stretch above)
+       or those children lose their containment and sprawl full-width,
+       ignoring the sidebar entirely. */
+    position: relative;
 }
 .bg-grid-folder-sidebar {
     flex: 0 0 220px;
