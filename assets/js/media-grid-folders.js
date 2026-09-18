@@ -11,6 +11,7 @@
 
     var data = bgMediaGridFolders;
     var isGridPage = document.body.classList.contains('upload-php');
+    var STORAGE_KEY = 'bgGridFolder';
 
     function buildNodeMarkup(id, name, hasChildren) {
         var $li = $('<li class="bg-grid-folder-node"></li>');
@@ -67,13 +68,37 @@
         $sidebar.find('.bg-grid-folder-option[data-folder-id="' + folderId + '"]').addClass('active');
     }
 
-    function updateGridUrl(folderId) {
-        if (!isGridPage || !window.history || !window.history.replaceState) {
+    function rememberGridFolder(folderId) {
+        if (!isGridPage) {
             return;
         }
-        var url = new URL(window.location.href);
-        url.searchParams.set(data.urlParam, folderId);
-        window.history.replaceState({}, '', url.toString());
+
+        // The Grid page's own internal router (wp.media.view.MediaFrame.Manage)
+        // manages the address bar itself and resets it shortly after load,
+        // so a URL query param alone doesn't survive a hard refresh - fighting
+        // WordPress for ownership of the URL isn't worth it. sessionStorage
+        // is the actual persistence mechanism; the URL update below is just
+        // a nice-to-have that's visible while browsing, not relied on.
+        try {
+            window.sessionStorage.setItem(STORAGE_KEY, folderId);
+        } catch (e) {
+            // Private browsing / storage disabled - persistence just won't work.
+        }
+
+        if (window.history && window.history.replaceState) {
+            var url = new URL(window.location.href);
+            url.searchParams.set(data.urlParam, folderId);
+            window.history.replaceState({}, '', url.toString());
+        }
+    }
+
+    function getStoredGridFolder() {
+        try {
+            var stored = window.sessionStorage.getItem(STORAGE_KEY);
+            return stored === null ? null : parseInt(stored, 10);
+        } catch (e) {
+            return null;
+        }
     }
 
     function attachmentFolderId(model) {
@@ -119,7 +144,7 @@
         }
 
         setActiveFolder($sidebar, folderId);
-        updateGridUrl(folderId);
+        rememberGridFolder(folderId);
     }
 
     function filterSidebar($sidebar, query) {
@@ -193,6 +218,11 @@
                 var urlValue = new URL(window.location.href).searchParams.get(data.urlParam);
                 if (urlValue !== null && urlValue !== '') {
                     initialFolder = parseInt(urlValue, 10);
+                } else {
+                    var stored = getStoredGridFolder();
+                    if (stored !== null) {
+                        initialFolder = stored;
+                    }
                 }
             }
             setActiveFolder($sidebar, initialFolder);
