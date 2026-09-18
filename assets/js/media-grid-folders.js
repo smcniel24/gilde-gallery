@@ -112,11 +112,6 @@
         }
     }
 
-    function attachmentFolderId(model) {
-        var value = model.get(data.queryArg);
-        return typeof value === 'number' ? value : data.allFilesId;
-    }
-
     // The "Add Media" modal's library is typically a live wp.media.model.Query
     // (server-paginated, refetches per filter change), but the Grid page's
     // default library turns out to be a plain local Attachments collection -
@@ -128,27 +123,30 @@
     }
 
     function filterLocalLibrary(view, library, folderId) {
-        // Filter from a pristine snapshot taken once, before any filtering
-        // ever happened - not from the live collection itself. Re-deriving
-        // "the full list" from the live collection (or wp.media.model
-        // .Attachments.all, which turned out to be the very same object as
-        // this library) on every click meant the second filter action was
-        // already filtering from a pool a previous reset() had shrunk down,
-        // so "All Files" after visiting a folder showed nothing instead of
-        // everything.
-        // Guard against ever locking in an empty/incomplete snapshot (e.g.
-        // if this fires before the library has finished loading) - only
-        // accept a snapshot at least as large as what we already have, so
-        // a bad early capture gets replaced instead of poisoning every
-        // filter for the rest of the session.
-        if (!view.bgAllModels || library.models.length > view.bgAllModels.length) {
-            view.bgAllModels = library.models.slice();
+        // Cache plain attribute data (not live Backbone model objects) from
+        // a pristine, pre-filtering snapshot. Re-using the same model
+        // *instances* across multiple reset() calls proved unreliable -
+        // once a model is reset out of the collection, WP's media models
+        // appear to do internal cleanup that leaves them unusable if
+        // reset back in later (re-selecting "All Files" after visiting a
+        // folder showed nothing instead of everything, even though the
+        // exact same cached objects were being passed back in). Passing
+        // plain attribute hashes to reset() instead makes Backbone build
+        // brand-new model instances each time, sidestepping that entirely.
+        //
+        // Only accept a new snapshot when it's at least as large as what's
+        // already cached, so a capture that fires before the library has
+        // fully loaded can't permanently lock in an incomplete result.
+        if (!view.bgAllAttrs || library.models.length > view.bgAllAttrs.length) {
+            view.bgAllAttrs = library.models.map(function (model) {
+                return model.toJSON();
+            });
         }
 
         var filtered = folderId === data.allFilesId
-            ? view.bgAllModels.slice()
-            : view.bgAllModels.filter(function (model) {
-                var value = attachmentFolderId(model);
+            ? view.bgAllAttrs.slice()
+            : view.bgAllAttrs.filter(function (attrs) {
+                var value = typeof attrs[data.queryArg] === 'number' ? attrs[data.queryArg] : data.allFilesId;
                 return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
             });
 
