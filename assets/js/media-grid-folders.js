@@ -78,18 +78,21 @@
 
     function selectFolder(view, $sidebar, folderId) {
         var library = view.controller.state().get('library');
-        if (library && library.props && typeof library.mirror === 'function' && wp.media.query) {
-            var props = _.extend({}, library.props.toJSON());
-            props[data.queryArg] = folderId;
+        if (library && library.props) {
+            library.props.set(data.queryArg, folderId);
 
             // wp.media.model.Query only auto-refetches on its own when a
             // *known* prop changes (search, mime type, orderby, etc.) - it
-            // ignores our custom bg_folder prop otherwise. Building a fresh
-            // query with wp.media.query() and mirroring it into the existing
-            // library collection is the same swap-in-a-new-query mechanism
-            // core's own automatic path uses, just triggered directly.
-            library.props.set(data.queryArg, folderId);
-            library.mirror(wp.media.query(props));
+            // ignores our custom bg_folder prop otherwise. "ignore" is a
+            // prop core deliberately keeps on that allow-list with no
+            // filtering meaning of its own, specifically as an escape hatch
+            // for forcing a live re-fetch after changing something else it
+            // doesn't watch - so setting it (to any new value) makes the
+            // *existing* collection re-query itself normally, preserving
+            // whatever state-specific context it already had, instead of
+            // us reconstructing a new query from scratch (which breaks
+            // other bound views expecting that original context).
+            library.props.set('ignore', (+new Date()));
         }
         setActiveFolder($sidebar, folderId);
         updateGridUrl(folderId);
