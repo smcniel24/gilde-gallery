@@ -1,4 +1,16 @@
 document.addEventListener('click', function (event) {
+    var dismiss = event.target.closest('.bg-notice-dismiss');
+    if (dismiss) {
+        var notice = dismiss.closest('.bg-notice');
+        if (notice) {
+            notice.classList.add('bg-notice-hide');
+            notice.addEventListener('animationend', function () {
+                notice.remove();
+            });
+        }
+        return;
+    }
+
     var button = event.target.closest('[data-bg-copy="gallery-sitemap"]');
     if (!button) {
         return;

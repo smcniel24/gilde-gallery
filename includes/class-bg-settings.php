@@ -66,18 +66,9 @@ final class BG_Settings
             'default' => 'classic'
         ));
 
-        register_setting('bildegallery_settings', BG_Updater::OPTION_GITHUB_TOKEN, array(
-            'type' => 'string',
-            'sanitize_callback' => array('BG_Updater', 'sanitize_github_token'),
-            'default' => ''
-        ));
-
-        add_settings_error(
-            'bildegallery_messages',
-            'bildegallery_message',
-            '',
-            'updated'
-        );
+        // One-time cleanup: the GitHub token field was removed now that the
+        // update repo is public, so drop any token that was saved earlier.
+        delete_option('bilde_github_token');
     }
 
     /**
@@ -237,63 +228,60 @@ final class BG_Settings
      */
     public static function settings_page(): void
     {
-        // Handle quick page creation
+        // Build the list of notices to display. Only the "page not found"
+        // warning (added from sanitize_base_path during the options.php
+        // save) needs to survive a redirect via the settings-errors
+        // transient - everything else here is read straight from the
+        // current request's own query args, so it's added directly.
+        $notices = array();
+
         if (isset($_GET['bg_created']) && $_GET['bg_created'] === '1') {
             $page_id = isset($_GET['page_id']) ? (int)$_GET['page_id'] : 0;
             if ($page_id > 0) {
                 $page_url = get_permalink($page_id);
-                add_settings_error(
-                    'bildegallery_messages',
-                    'page_created',
-                    sprintf('Success! Page created: <a href="%s" target="_blank">%s</a>', $page_url, $page_url),
-                    'success'
+                $notices[] = array(
+                    'type' => 'success',
+                    'message' => sprintf('Page created: <a href="%s" target="_blank">%s</a>', esc_url($page_url), esc_html($page_url)),
                 );
             }
         }
 
         if (isset($_GET['bg_rebuild']) && $_GET['bg_rebuild'] === '1') {
-            add_settings_error(
-                'bildegallery_messages',
-                'sitemap_index_rebuilt',
-                'Sitemap index rebuilt successfully.',
-                'success'
-            );
+            $notices[] = array('type' => 'success', 'message' => 'Sitemap index rebuilt successfully.');
         }
 
         if (isset($_GET['bg_migrated']) && $_GET['bg_migrated'] === '1') {
-            add_settings_error(
-                'bildegallery_messages',
-                'migration_complete',
-                'Migration from FileBird complete. Review the results below.',
-                'success'
-            );
+            $notices[] = array('type' => 'success', 'message' => 'Migration from FileBird complete. Review the results below.');
         }
 
         if (isset($_GET['bg_update_check'])) {
             if ($_GET['bg_update_check'] === 'available') {
                 $new_version = isset($_GET['bg_update_version']) ? sanitize_text_field($_GET['bg_update_version']) : '';
-                add_settings_error(
-                    'bildegallery_messages',
-                    'update_available',
-                    sprintf(
+                $notices[] = array(
+                    'type' => 'success',
+                    'message' => sprintf(
                         'A new version (%s) is available. <a href="%s">Go to Plugins to update</a>.',
                         esc_html($new_version),
                         esc_url(admin_url('plugins.php'))
                     ),
-                    'success'
                 );
             } else {
-                add_settings_error(
-                    'bildegallery_messages',
-                    'update_current',
-                    'You are running the latest version of BildeGallery.',
-                    'success'
-                );
+                $notices[] = array('type' => 'success', 'message' => 'You are running the latest version of BildeGallery.');
             }
         }
 
+        foreach (get_settings_errors('bildegallery_messages') as $error) {
+            $notices[] = array(
+                'type' => $error['type'] === 'error' ? 'error' : 'success',
+                'message' => $error['message'],
+            );
+        }
+
+        if (isset($_GET['settings-updated']) && $_GET['settings-updated'] && empty($notices)) {
+            $notices[] = array('type' => 'success', 'message' => 'Settings saved.');
+        }
+
         $base_path = get_option(self::OPTION_BASE_PATH, 'gallery');
-        $github_token = BG_Updater::get_github_token();
         $folder_style = self::get_folder_style();
         $sitemap_url = BG_Sitemap::get_gallery_sitemap_url();
         $sitemap_index = BG_Sitemap::get_sitemap_index();
@@ -338,7 +326,17 @@ final class BG_Settings
         <div class="wrap">
             <h1>BildeGallery Settings</h1>
 
-            <?php settings_errors('bildegallery_messages'); ?>
+            <?php if (!empty($notices)) : ?>
+                <div class="bg-notices">
+                    <?php foreach ($notices as $notice) : ?>
+                        <div class="bg-notice bg-notice-<?php echo esc_attr($notice['type']); ?>">
+                            <span class="bg-notice-icon" aria-hidden="true"></span>
+                            <div class="bg-notice-message"><?php echo wp_kses_post($notice['message']); ?></div>
+                            <button type="button" class="bg-notice-dismiss" aria-label="Dismiss">&times;</button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
 
             <form method="post" action="options.php">
                 <?php settings_fields('bildegallery_settings'); ?>
@@ -502,26 +500,6 @@ final class BG_Settings
                                     These pages are used to build gallery URLs in the sitemap.
                                 </p>
                             <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="<?php echo esc_attr(BG_Updater::OPTION_GITHUB_TOKEN); ?>">GitHub Access Token (optional)</label>
-                        </th>
-                        <td>
-                            <input type="password"
-                                   id="<?php echo esc_attr(BG_Updater::OPTION_GITHUB_TOKEN); ?>"
-                                   name="<?php echo esc_attr(BG_Updater::OPTION_GITHUB_TOKEN); ?>"
-                                   value="<?php echo esc_attr($github_token); ?>"
-                                   class="regular-text"
-                                   autocomplete="off"
-                                   placeholder="ghp_...">
-                            <p class="description">
-                                <code>smcniel24/gilde-gallery</code> is a public repository, so updates work without a
-                                token. Only set this if the repository is made private again, or to raise GitHub's
-                                anonymous API rate limit. <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Create a token</a>
-                                with read-only access to that repository's contents if needed.
-                            </p>
                         </td>
                     </tr>
                 </table>

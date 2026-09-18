@@ -1,3 +1,93 @@
+.bg-notices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0;
+    max-width: 800px;
+}
+.bg-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #94a3b8;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    padding: 12px 14px;
+    animation: bg-notice-in 0.15s ease-out;
+}
+.bg-notice-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-top: 1px;
+    position: relative;
+}
+.bg-notice-icon::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+.bg-notice-message {
+    flex-grow: 1;
+    padding-top: 1px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1e293b;
+}
+.bg-notice-message a {
+    font-weight: 600;
+}
+.bg-notice-dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 2px;
+}
+.bg-notice-dismiss:hover {
+    color: #475569;
+}
+.bg-notice-success {
+    border-left-color: #22c55e;
+}
+.bg-notice-success .bg-notice-icon {
+    background: #22c55e;
+}
+.bg-notice-success .bg-notice-icon::before {
+    content: '\2713';
+}
+.bg-notice-error {
+    border-left-color: #ef4444;
+}
+.bg-notice-error .bg-notice-icon {
+    background: #ef4444;
+}
+.bg-notice-error .bg-notice-icon::before {
+    content: '!';
+}
+.bg-notice-hide {
+    animation: bg-notice-out 0.15s ease-in forwards;
+}
+@keyframes bg-notice-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes bg-notice-out {
+    from { opacity: 1; max-height: 100px; }
+    to { opacity: 0; max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0; }
+}
 .card {
     background: #fff;
     border: 1px solid #ccd0d4;

@@ -1,8 +1,7 @@
 <?php
 /**
  * GitHub-based update checking via the vendored Plugin Update Checker
- * library. Checks tagged releases on a private GitHub repo, authenticating
- * with a personal access token stored in settings.
+ * library. Checks tagged releases on the public GitHub repo.
  */
 
 if (!defined('ABSPATH')) {
@@ -15,7 +14,6 @@ use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 final class BG_Updater
 {
-    const OPTION_GITHUB_TOKEN = 'bilde_github_token';
     const GITHUB_REPO_URL = 'https://github.com/smcniel24/gilde-gallery';
 
     /** @var object|null */
@@ -43,30 +41,8 @@ final class BG_Updater
             'bildegallery'
         );
 
-        $token = self::get_github_token();
-        if ($token !== '') {
-            self::$update_checker->setAuthentication($token);
-        }
-
         // Default behavior tracks the latest tagged release (e.g. v0.2.0),
         // not raw branch commits, using GitHub's auto-generated source zip.
-    }
-
-    /**
-     * Get the stored GitHub PAT
-     */
-    public static function get_github_token(): string
-    {
-        $token = get_option(self::OPTION_GITHUB_TOKEN, '');
-        return is_string($token) ? trim($token) : '';
-    }
-
-    /**
-     * Sanitize the GitHub token field
-     */
-    public static function sanitize_github_token(string $token): string
-    {
-        return trim($token);
     }
 
     /**
