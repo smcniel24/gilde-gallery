@@ -80,6 +80,15 @@
         var library = view.controller.state().get('library');
         if (library && library.props) {
             library.props.set(data.queryArg, folderId);
+
+            // wp.media.model.Query only auto-refetches when a *known* prop
+            // (search, mime type, orderby, etc.) changes - it silently
+            // ignores our custom bg_folder prop otherwise. _requery(true)
+            // is the same internal method that whitelisted change triggers,
+            // called directly so the grid actually re-fetches with it.
+            if (typeof library._requery === 'function') {
+                library._requery(true);
+            }
         }
         setActiveFolder($sidebar, folderId);
         updateGridUrl(folderId);
