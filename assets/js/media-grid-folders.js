@@ -65,7 +65,18 @@
 
     function setActiveFolder($sidebar, folderId) {
         $sidebar.find('.bg-grid-folder-option').removeClass('active');
-        $sidebar.find('.bg-grid-folder-option[data-folder-id="' + folderId + '"]').addClass('active');
+
+        var $option = $sidebar.find('.bg-grid-folder-option[data-folder-id="' + folderId + '"]');
+        $option.addClass('active');
+
+        // Expand every ancestor node so a nested selection restored on
+        // load (e.g. from sessionStorage) is actually visible, not hidden
+        // inside a collapsed branch the user never manually opened.
+        $option.parents('.bg-grid-folder-node').each(function () {
+            var $node = $(this);
+            $node.addClass('expanded');
+            $node.children('.bg-grid-folder-toggle').attr('aria-expanded', 'true');
+        });
     }
 
     function rememberGridFolder(folderId) {
