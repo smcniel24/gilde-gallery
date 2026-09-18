@@ -20,10 +20,61 @@ final class BG_Folders
     const ALL_FILES_ID = -1;
     const UNCATEGORIZED_ID = 0;
 
+    // Folder tree and attachment-ID lookups are cached in transients keyed
+    // by this version number. Any change that could affect their results
+    // (a folder is created/renamed/deleted, an attachment's folder changes,
+    // or an attachment is added/removed) bumps the version instead of
+    // hunting down which specific cache entries to clear, so stale reads
+    // are never possible - only orphaned transients, which just expire.
+    const CACHE_VERSION_OPTION = 'bilde_folder_cache_version';
+    const CACHE_TTL = 6 * HOUR_IN_SECONDS;
+
     public static function init(): void
     {
         add_action('init', array(__CLASS__, 'register_taxonomy'));
         add_filter('update_post_term_count_statuses', array(__CLASS__, 'include_inherit_status_in_counts'), 10, 2);
+
+        add_action('saved_term', array(__CLASS__, 'bump_cache_version_for_taxonomy'), 10, 3);
+        add_action('delete_term', array(__CLASS__, 'bump_cache_version_for_taxonomy'), 10, 3);
+        add_action('set_object_terms', array(__CLASS__, 'bump_cache_version_for_object_terms'), 10, 4);
+        add_action('add_attachment', array(__CLASS__, 'bump_cache_version'));
+        add_action('delete_attachment', array(__CLASS__, 'bump_cache_version'));
+    }
+
+    /**
+     * Invalidate cached folder data when a term in our taxonomy changes
+     */
+    public static function bump_cache_version_for_taxonomy($term_id, $tt_id, $taxonomy): void
+    {
+        if ($taxonomy === self::TAXONOMY) {
+            self::bump_cache_version();
+        }
+    }
+
+    /**
+     * Invalidate cached folder data when an attachment's folder assignment changes
+     */
+    public static function bump_cache_version_for_object_terms($object_id, $terms, $tt_ids, $taxonomy): void
+    {
+        if ($taxonomy === self::TAXONOMY) {
+            self::bump_cache_version();
+        }
+    }
+
+    /**
+     * Bump the cache version, invalidating every cached tree/attachment lookup
+     */
+    public static function bump_cache_version(): void
+    {
+        update_option(self::CACHE_VERSION_OPTION, self::get_cache_version() + 1, false);
+    }
+
+    /**
+     * Current cache version, used as a transient key suffix
+     */
+    private static function get_cache_version(): int
+    {
+        return (int)get_option(self::CACHE_VERSION_OPTION, 1);
     }
 
     /**
@@ -99,6 +150,12 @@ final class BG_Folders
      */
     public static function get_tree(): array
     {
+        $cache_key = 'bilde_tree_' . self::get_cache_version();
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $terms = get_terms(array(
             'taxonomy' => self::TAXONOMY,
             'hide_empty' => false,
@@ -107,7 +164,9 @@ final class BG_Folders
         ));
 
         if (is_wp_error($terms) || empty($terms)) {
-            return array();
+            $tree = array();
+            set_transient($cache_key, $tree, self::CACHE_TTL);
+            return $tree;
         }
 
         $by_parent = array();
@@ -125,7 +184,9 @@ final class BG_Folders
             );
         }
 
-        return self::build_branch($by_parent, 0);
+        $tree = self::build_branch($by_parent, 0);
+        set_transient($cache_key, $tree, self::CACHE_TTL);
+        return $tree;
     }
 
     /**
@@ -151,6 +212,22 @@ final class BG_Folders
      * "All Files" (-1) and "Uncategorized" (0) pseudo-folders.
      */
     public static function get_attachment_ids(int $folder_id): array
+    {
+        $cache_key = 'bilde_attach_' . self::get_cache_version() . '_' . $folder_id;
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $ids = self::query_attachment_ids($folder_id);
+        set_transient($cache_key, $ids, self::CACHE_TTL);
+        return $ids;
+    }
+
+    /**
+     * Run the actual attachment lookup for a folder, uncached
+     */
+    private static function query_attachment_ids(int $folder_id): array
     {
         if ($folder_id === self::ALL_FILES_ID) {
             $ids = get_posts(array(

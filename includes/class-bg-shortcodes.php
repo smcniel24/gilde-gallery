@@ -63,6 +63,11 @@ final class BG_Shortcodes
         $title = trim($atts['title']);
         $is_root_view = ($folder_id === $root_folder_id);
 
+        // Each gallery instance gets its own lightbox group so prev/next
+        // navigation stays within the images actually shown here, even
+        // when multiple [bilde_gallery] shortcodes appear on one page.
+        $lightbox_group = wp_unique_id('bg-gallery-');
+
         ob_start();
 
         if ($title !== '' && $is_root_view) {
@@ -91,7 +96,7 @@ final class BG_Shortcodes
                 );
                 ?>
                 <figure class="bg-gallery-item">
-                    <a href="<?php echo esc_url($full_url); ?>" class="bg-lightbox" data-bg-lightbox="gallery">
+                    <a href="<?php echo esc_url($full_url); ?>" class="bg-lightbox" data-bg-lightbox="<?php echo esc_attr($lightbox_group); ?>">
                         <?php echo $img; ?>
                     </a>
                 </figure>

@@ -271,3 +271,63 @@ body.bg-lightbox-open {
 .bg-lightbox-close:focus {
     background: rgba(255, 255, 255, 0.25);
 }
+
+.bg-lightbox-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.bg-lightbox-nav:hover,
+.bg-lightbox-nav:focus {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.bg-lightbox-prev {
+    left: 1.25rem;
+}
+
+.bg-lightbox-next {
+    right: 1.25rem;
+}
+
+.bg-lightbox-counter {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ffffff;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+}
+
+@media (max-width: 600px) {
+    .bg-lightbox-nav {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.1rem;
+    }
+
+    .bg-lightbox-prev {
+        left: 0.5rem;
+    }
+
+    .bg-lightbox-next {
+        right: 0.5rem;
+    }
+}
