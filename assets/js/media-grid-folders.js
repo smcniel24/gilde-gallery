@@ -127,14 +127,22 @@
         return !!(wp.media.model.Query && library instanceof wp.media.model.Query);
     }
 
-    function filterLocalLibrary(library, folderId) {
-        var source = (wp.media.model.Attachments && wp.media.model.Attachments.all)
-            ? wp.media.model.Attachments.all.models
-            : library.models;
+    function filterLocalLibrary(view, library, folderId) {
+        // Filter from a pristine snapshot taken once, before any filtering
+        // ever happened - not from the live collection itself. Re-deriving
+        // "the full list" from the live collection (or wp.media.model
+        // .Attachments.all, which turned out to be the very same object as
+        // this library) on every click meant the second filter action was
+        // already filtering from a pool a previous reset() had shrunk down,
+        // so "All Files" after visiting a folder showed nothing instead of
+        // everything.
+        if (!view.bgAllModels) {
+            view.bgAllModels = library.models.slice();
+        }
 
         var filtered = folderId === data.allFilesId
-            ? source.slice()
-            : source.filter(function (model) {
+            ? view.bgAllModels.slice()
+            : view.bgAllModels.filter(function (model) {
                 var value = attachmentFolderId(model);
                 return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
             });
@@ -150,7 +158,7 @@
                 library.props.set(data.queryArg, folderId);
                 library.props.set('ignore', (+new Date()));
             } else {
-                filterLocalLibrary(library, folderId);
+                filterLocalLibrary(view, library, folderId);
             }
         }
 
