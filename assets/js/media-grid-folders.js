@@ -150,15 +150,17 @@
                 return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
             });
 
-        // Confirmed via live debugging: this exact reset() call, run
-        // manually from the console a moment later, correctly populates
-        // the collection AND updates the visible grid - but run
-        // synchronously inside the click handler itself, it produced 0
-        // models with no error. Something else appears to react to the
-        // same click/event cycle and interferes with it before it settles.
-        // Deferring to the next tick sidesteps whatever that is.
+        // Confirmed via live debugging: calling reset() on a *freshly
+        // fetched* library reference from the console works every time,
+        // but reset() on the `library` object captured earlier in this
+        // call - even deferred with setTimeout - produced 0 models with
+        // no error. That points to the active state's library sometimes
+        // being swapped for a different collection object in between, so
+        // re-fetch it fresh right before actually resetting it instead of
+        // trusting the reference captured above.
         setTimeout(function () {
-            library.reset(filtered);
+            var freshLibrary = view.controller.state().get('library');
+            freshLibrary.reset(filtered);
         }, 0);
     }
 
