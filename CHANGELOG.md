@@ -9,6 +9,8 @@ All notable changes to the BildeGallery plugin are documented in this file.
 - **Lightbox prev/next navigation**: each `[bilde_gallery]` gets its own lightbox group, with arrow-key, on-screen button, and touch-swipe navigation between that gallery's images, an image counter, and preloading of neighboring images.
 - **Folder/attachment query caching**: `get_tree()` and `get_attachment_ids()` are now cached in version-keyed transients, cutting repeated database queries on pages with multiple gallery/folder/breadcrumb shortcodes. The cache invalidates automatically whenever a folder or an attachment's folder assignment changes.
 - **Folder-tree picker for bulk moves**: the Media Library's "Bulk actions" dropdown no longer lists every folder as a separate flat option. A single "Move to folder…" action now opens a modal with a real expandable/collapsible folder tree and a search filter, scaling to large folder structures.
+- **Native folder browsing in the Media Library**: the default Grid view (and every "Add Media" popup, including inside page builders like Divi) now shows a folder-tree sidebar next to the images, matching FileBird's browsing experience. Selecting a folder filters the visible attachments in place, with no page reload.
+- **Gutenberg blocks**: `[bilde_gallery]`, `[bilde_folders]`, and `[bilde_breadcrumbs]` are now also available as blocks (grouped under a "BildeGallery" category), each with a folder-tree picker in place of typing in a numeric folder ID by hand. The blocks render through the exact same code as the shortcodes, so there's no behavioral difference between the two - just a friendlier way to configure them.
 
 ## 0.1.0
 
