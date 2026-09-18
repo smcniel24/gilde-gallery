@@ -27,7 +27,12 @@
 
         el.querySelectorAll('.bg-move-node.expanded').forEach(function (node) {
             node.classList.remove('expanded');
-            var toggle = node.querySelector(':scope > .bg-move-toggle');
+            // The toggle/option sit inside a .bg-move-row wrapper (a leaf
+            // node like "Uncategorized" has neither), so querySelector's
+            // first-match-in-document-order behavior is used here rather
+            // than a `:scope >` direct-child selector - this node's own
+            // toggle always precedes any nested branch's toggles.
+            var toggle = node.querySelector('.bg-move-toggle');
             if (toggle) {
                 toggle.setAttribute('aria-expanded', 'false');
             }
@@ -66,7 +71,10 @@
         }
 
         nodes.forEach(function (node) {
-            var option = node.querySelector(':scope > .bg-move-option');
+            // See the comment in openModal() above about why this isn't a
+            // `:scope >` selector - this node's own option button always
+            // precedes any nested branch's options in document order.
+            var option = node.querySelector('.bg-move-option');
             var name = option ? option.getAttribute('data-folder-name').toLowerCase() : '';
             if (name.indexOf(normalized) === -1) {
                 node.classList.add('filtered-hidden');

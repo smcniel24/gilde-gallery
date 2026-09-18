@@ -265,14 +265,16 @@ final class BG_Media_UI
             $has_children = !empty($folder['children']);
             ?>
             <li class="bg-move-node<?php echo $has_children ? ' has-children' : ''; ?>">
-                <?php if ($has_children) : ?>
-                    <button type="button" class="bg-move-toggle" aria-expanded="false" aria-label="Expand">
-                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                <div class="bg-move-row">
+                    <?php if ($has_children) : ?>
+                        <button type="button" class="bg-move-toggle" aria-expanded="false" aria-label="Expand">
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    <?php endif; ?>
+                    <button type="button" class="bg-move-option" data-folder-id="<?php echo esc_attr($id); ?>" data-folder-name="<?php echo esc_attr($name); ?>">
+                        <?php echo esc_html($name); ?>
                     </button>
-                <?php endif; ?>
-                <button type="button" class="bg-move-option" data-folder-id="<?php echo esc_attr($id); ?>" data-folder-name="<?php echo esc_attr($name); ?>">
-                    <?php echo esc_html($name); ?>
-                </button>
+                </div>
                 <?php if ($has_children) : ?>
                     <ul class="bg-move-branch">
                         <?php self::render_move_tree_nodes($folder['children']); ?>
