@@ -28,6 +28,7 @@ require_once BILDE_PLUGIN_DIR . 'includes/class-bg-router.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-sitemap.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-assets.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-shortcodes.php';
+require_once BILDE_PLUGIN_DIR . 'includes/class-bg-blocks.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-media-ui.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-media-grid.php';
 require_once BILDE_PLUGIN_DIR . 'includes/class-bg-migration.php';
@@ -43,6 +44,7 @@ final class Bilde_Gallery_Plugin
         BG_Sitemap::init();
         BG_Assets::init();
         BG_Shortcodes::init();
+        BG_Blocks::init();
         BG_Media_UI::init();
         BG_Media_Grid::init();
         BG_Migration::init();
