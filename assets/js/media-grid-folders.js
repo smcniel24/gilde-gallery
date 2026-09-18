@@ -13,6 +13,14 @@
     var isGridPage = document.body.classList.contains('upload-php');
     var STORAGE_KEY = 'bgGridFolder';
 
+    // wp_localize_script() converts every value to a string, including
+    // these two - so comparisons like `folderId === data.allFilesId`
+    // (folderId always parsed to a real number from the DOM) were silently
+    // false the whole time. Real folder IDs never hit this because both
+    // sides of those comparisons happened to already be numbers.
+    data.allFilesId = parseInt(data.allFilesId, 10);
+    data.uncategorizedId = parseInt(data.uncategorizedId, 10);
+
     function buildNodeMarkup(id, name, hasChildren) {
         var $li = $('<li class="bg-grid-folder-node"></li>');
         if (hasChildren) {
@@ -150,24 +158,9 @@
                 return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
             });
 
-        // eslint-disable-next-line no-console
-        console.log('[bg-debug] filterLocalLibrary', {
-            folderId: folderId,
-            folderIdType: typeof folderId,
-            allFilesId: data.allFilesId,
-            isAllFiles: folderId === data.allFilesId,
-            bgAllAttrsLength: view.bgAllAttrs.length,
-            filteredLength: filtered.length,
-        });
-
         setTimeout(function () {
             var freshLibrary = view.controller.state().get('library');
-            var result = freshLibrary.reset(filtered);
-            // eslint-disable-next-line no-console
-            console.log('[bg-debug] after deferred reset', {
-                freshLibraryLength: freshLibrary.length,
-                resultLength: result ? result.length : null,
-            });
+            freshLibrary.reset(filtered);
         }, 0);
     }
 
