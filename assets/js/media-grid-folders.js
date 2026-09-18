@@ -30,8 +30,14 @@
         return $li;
     }
 
-    function renderBranch(folders) {
-        var $ul = $('<ul class="bg-grid-folder-branch"></ul>');
+    // Appends <li> nodes directly into $parentUl - used both for the
+    // top-level list (real <ul> the sidebar always shows) and, recursively,
+    // for a folder's children (a nested <ul class="bg-grid-folder-branch">
+    // that's collapsed by default and only shown via the "expanded" class -
+    // that wrapper must never be used at the top level, or the CSS rule
+    // that collapses it by default hides every real folder with no
+    // "expanded" parent <li> ever able to reveal them).
+    function renderNodes($parentUl, folders) {
         folders.forEach(function (folder) {
             var id = folder.id || 0;
             var name = folder.text || folder.title || ('Folder ' + id);
@@ -39,19 +45,20 @@
             var $li = buildNodeMarkup(id, name, hasChildren);
 
             if (hasChildren) {
-                $li.append(renderBranch(folder.children));
+                var $branch = $('<ul class="bg-grid-folder-branch"></ul>');
+                renderNodes($branch, folder.children);
+                $li.append($branch);
             }
 
-            $ul.append($li);
+            $parentUl.append($li);
         });
-        return $ul;
     }
 
     function buildTree() {
         var $root = $('<ul class="bg-grid-folder-tree"></ul>');
         $root.append(buildNodeMarkup(data.allFilesId, data.allFilesLabel, false));
         $root.append(buildNodeMarkup(data.uncategorizedId, data.uncategorizedLabel, false));
-        $root.append(renderBranch(data.tree || []));
+        renderNodes($root, data.tree || []);
         return $root;
     }
 
