@@ -1,0 +1,125 @@
+.card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.card h3 {
+    margin-top: 0;
+}
+.card h4 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+.card pre {
+    background: #f6f7f7;
+    padding: 12px;
+    border-radius: 3px;
+    overflow-x: auto;
+}
+.card ul, .card ol {
+    margin-left: 20px;
+}
+.bg-folder-style-options {
+    display: grid;
+    gap: 16px;
+    max-width: 760px;
+}
+.bg-folder-style-option {
+    background: #ffffff;
+    border: 1px solid #ccd0d4;
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+.bg-folder-style-choice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+.bg-folder-style-label {
+    margin-right: 6px;
+}
+.bg-folder-style-desc {
+    color: #6b7280;
+    font-weight: 400;
+    font-size: 12px;
+}
+.bg-folder-style-preview {
+    margin-top: 10px;
+}
+.bg-folder-style-preview .bg-folder-nav {
+    margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.bg-folder-style-preview .bg-folder-link {
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1.1rem;
+    border-radius: 6px;
+    color: #0f172a;
+    border: 1px solid transparent;
+    font-weight: 600;
+    text-decoration: none;
+}
+.bg-folder-style-preview .bg-folder-icon {
+    font-size: 1.1rem;
+    color: currentColor;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-text-link {
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-weight: 500;
+    color: #2563eb;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-text-link .bg-folder-icon {
+    font-size: 0.95rem;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-classic {
+    background: linear-gradient(180deg, #fde68a, #fbbf24);
+    border-color: #f59e0b;
+    color: #000000;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-classic .bg-folder-icon {
+    color: #b45309;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-gold-outline {
+    background: transparent;
+    border-color: #f59e0b;
+    color: #000000;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-gold-outline .bg-folder-icon {
+    color: #b45309;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-outline {
+    background: #ffffff;
+    border-color: #94a3b8;
+    color: #0f172a;
+    border-radius: 999px;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-soft {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #0f172a;
+}
+.bg-folder-style-preview .bg-folder-link.bg-folder-style-solid {
+    background: #0f172a;
+    border-color: #0f172a;
+    color: #ffffff;
+}
+.bg-migration-report table {
+    margin: 10px 0;
+}
+.bg-migration-report td, .bg-migration-report th {
+    padding: 6px 10px;
+}
+.bg-migration-warning {
+    color: #b45309;
+    font-weight: 600;
+}
