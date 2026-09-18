@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 
 final class BG_Media_UI
 {
+    const BULK_MOVE_NONCE_ACTION = 'bg_bulk_move_to_folder';
+
     public static function init(): void
     {
         add_action('restrict_manage_posts', array(__CLASS__, 'render_folder_filter'));
@@ -24,6 +26,10 @@ final class BG_Media_UI
         add_filter('handle_bulk_actions-upload', array(__CLASS__, 'handle_bulk_action'), 10, 3);
 
         add_action('admin_notices', array(__CLASS__, 'render_bulk_action_notice'));
+
+        add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_bulk_move_assets'));
+        add_action('admin_footer-upload.php', array(__CLASS__, 'render_move_modal'));
+        add_action('wp_ajax_' . self::BULK_MOVE_NONCE_ACTION, array(__CLASS__, 'ajax_bulk_move_to_folder'));
     }
 
     /**
@@ -137,81 +143,185 @@ final class BG_Media_UI
     }
 
     /**
-     * Register the "Move to folder" bulk action
+     * Register the "Move to folder" bulk action. A single entry point -
+     * selecting it and clicking Apply opens a folder-tree picker modal
+     * (see render_move_modal()) instead of listing every folder as its
+     * own flat dropdown option, which stops scaling once a site has more
+     * than a handful of folders.
      */
     public static function register_bulk_actions(array $actions): array
     {
-        $tree = BG_Folders::get_tree();
-        $flat = self::flatten_tree($tree);
-
-        foreach ($flat as $folder) {
-            $actions['bg_move_to_' . $folder['id']] = 'Move to: ' . $folder['label'];
-        }
-
-        $actions['bg_move_to_uncategorized'] = 'Move to: Uncategorized';
-
+        $actions['bg_move_to_folder'] = 'Move to folder…';
         return $actions;
     }
 
     /**
-     * Flatten a folder tree into a list with indented labels, for use in
-     * dropdown/bulk-action option lists
-     */
-    private static function flatten_tree(array $folders, int $depth = 0): array
-    {
-        $flat = array();
-
-        foreach ($folders as $folder) {
-            $id = isset($folder['id']) ? (int)$folder['id'] : 0;
-            $name = $folder['text'] ?? $folder['title'] ?? ('Folder ' . $id);
-            $flat[] = array(
-                'id' => $id,
-                'label' => str_repeat('— ', $depth) . $name,
-            );
-
-            if (!empty($folder['children'])) {
-                $flat = array_merge($flat, self::flatten_tree($folder['children'], $depth + 1));
-            }
-        }
-
-        return $flat;
-    }
-
-    /**
-     * Handle the "Move to folder" bulk action
+     * Fallback for the "Move to folder" bulk action submitting without JS
+     * (the picker modal never opened, so nothing was chosen to move to).
      */
     public static function handle_bulk_action(string $redirect_to, string $action, array $post_ids): string
     {
-        if (strpos($action, 'bg_move_to_') !== 0) {
+        if ($action !== 'bg_move_to_folder') {
             return $redirect_to;
         }
 
-        $target = substr($action, strlen('bg_move_to_'));
-        $folder_id = $target === 'uncategorized' ? 0 : (int)$target;
+        return add_query_arg('bg_move_needs_js', '1', $redirect_to);
+    }
+
+    /**
+     * Show a confirmation notice after a bulk move, or a JS-required
+     * notice if the picker's own AJAX flow never ran
+     */
+    public static function render_bulk_action_notice(): void
+    {
+        if (isset($_GET['bg_moved'])) {
+            $moved = (int)$_GET['bg_moved'];
+            printf(
+                '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+                esc_html(sprintf('Moved %d item(s) to the selected folder.', $moved))
+            );
+            return;
+        }
+
+        if (isset($_GET['bg_move_needs_js'])) {
+            echo '<div class="notice notice-error is-dismissible"><p>Moving items to a folder requires JavaScript. Nothing was moved.</p></div>';
+        }
+    }
+
+    /**
+     * Enqueue the folder-picker modal's script/styles on the Media Library
+     * list screen only
+     */
+    public static function enqueue_bulk_move_assets(string $hook): void
+    {
+        if ($hook !== 'upload.php') {
+            return;
+        }
+
+        BG_Assets::enqueue_bootstrap_icons();
+
+        wp_enqueue_style(
+            'bilde-media-bulk-move',
+            BILDE_PLUGIN_URL . 'assets/css/media-bulk-move.css',
+            array(),
+            BILDE_VERSION
+        );
+
+        wp_enqueue_script(
+            'bilde-media-bulk-move',
+            BILDE_PLUGIN_URL . 'assets/js/media-bulk-move.js',
+            array(),
+            BILDE_VERSION,
+            true
+        );
+
+        wp_localize_script('bilde-media-bulk-move', 'bgBulkMove', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce(self::BULK_MOVE_NONCE_ACTION),
+            'action' => self::BULK_MOVE_NONCE_ACTION,
+        ));
+    }
+
+    /**
+     * Render the hidden folder-picker modal into the Media Library page footer
+     */
+    public static function render_move_modal(): void
+    {
+        $tree = BG_Folders::get_tree();
+        ?>
+        <div id="bg-move-modal" class="bg-modal" hidden>
+            <div class="bg-modal-backdrop" data-bg-move-dismiss></div>
+            <div class="bg-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="bg-move-modal-title">
+                <div class="bg-modal-header">
+                    <h2 id="bg-move-modal-title">Move to Folder</h2>
+                    <button type="button" class="bg-modal-close" data-bg-move-dismiss aria-label="Close">&times;</button>
+                </div>
+                <div class="bg-modal-body">
+                    <input type="search" id="bg-move-search" class="bg-move-search" placeholder="Search folders&hellip;" autocomplete="off">
+                    <ul class="bg-move-tree">
+                        <li class="bg-move-node">
+                            <button type="button" class="bg-move-option" data-folder-id="0" data-folder-name="Uncategorized">Uncategorized</button>
+                        </li>
+                        <?php self::render_move_tree_nodes($tree); ?>
+                    </ul>
+                </div>
+                <div class="bg-modal-footer">
+                    <span class="bg-move-status" aria-live="polite"></span>
+                    <button type="button" class="button" data-bg-move-dismiss>Cancel</button>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Recursively render the folder tree as nested, expandable <ul>/<li> nodes
+     */
+    private static function render_move_tree_nodes(array $folders): void
+    {
+        foreach ($folders as $folder) {
+            $id = isset($folder['id']) ? (int)$folder['id'] : 0;
+            $name = $folder['text'] ?? $folder['title'] ?? ('Folder ' . $id);
+            $has_children = !empty($folder['children']);
+            ?>
+            <li class="bg-move-node<?php echo $has_children ? ' has-children' : ''; ?>">
+                <?php if ($has_children) : ?>
+                    <button type="button" class="bg-move-toggle" aria-expanded="false" aria-label="Expand">
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </button>
+                <?php endif; ?>
+                <button type="button" class="bg-move-option" data-folder-id="<?php echo esc_attr($id); ?>" data-folder-name="<?php echo esc_attr($name); ?>">
+                    <?php echo esc_html($name); ?>
+                </button>
+                <?php if ($has_children) : ?>
+                    <ul class="bg-move-branch">
+                        <?php self::render_move_tree_nodes($folder['children']); ?>
+                    </ul>
+                <?php endif; ?>
+            </li>
+            <?php
+        }
+    }
+
+    /**
+     * AJAX handler: move the given attachments to the given folder
+     */
+    public static function ajax_bulk_move_to_folder(): void
+    {
+        check_ajax_referer(self::BULK_MOVE_NONCE_ACTION, 'nonce');
+
+        if (!current_user_can('upload_files')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions.'), 403);
+        }
+
+        $folder_id = isset($_POST['folder_id']) ? (int)$_POST['folder_id'] : null;
+        if ($folder_id === null) {
+            wp_send_json_error(array('message' => 'No destination folder specified.'), 400);
+        }
+
+        if ($folder_id > 0 && !term_exists($folder_id, BG_Folders::TAXONOMY)) {
+            wp_send_json_error(array('message' => 'That folder no longer exists.'), 400);
+        }
+
+        $attachment_ids = isset($_POST['attachment_ids']) && is_array($_POST['attachment_ids'])
+            ? array_map('intval', $_POST['attachment_ids'])
+            : array();
+
+        if (empty($attachment_ids)) {
+            wp_send_json_error(array('message' => 'No items selected.'), 400);
+        }
 
         $moved = 0;
-        foreach ($post_ids as $post_id) {
-            if (BG_Folders::set_attachment_folder((int)$post_id, $folder_id)) {
+        foreach ($attachment_ids as $attachment_id) {
+            if (!current_user_can('edit_post', $attachment_id)) {
+                continue;
+            }
+
+            if (BG_Folders::set_attachment_folder($attachment_id, $folder_id)) {
                 $moved++;
             }
         }
 
-        return add_query_arg('bg_moved', $moved, $redirect_to);
-    }
-
-    /**
-     * Show a confirmation notice after a bulk move
-     */
-    public static function render_bulk_action_notice(): void
-    {
-        if (!isset($_GET['bg_moved'])) {
-            return;
-        }
-
-        $moved = (int)$_GET['bg_moved'];
-        printf(
-            '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-            esc_html(sprintf('Moved %d item(s) to the selected folder.', $moved))
-        );
+        wp_send_json_success(array('moved' => $moved));
     }
 }
