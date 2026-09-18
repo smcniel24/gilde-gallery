@@ -136,7 +136,12 @@
         // already filtering from a pool a previous reset() had shrunk down,
         // so "All Files" after visiting a folder showed nothing instead of
         // everything.
-        if (!view.bgAllModels) {
+        // Guard against ever locking in an empty/incomplete snapshot (e.g.
+        // if this fires before the library has finished loading) - only
+        // accept a snapshot at least as large as what we already have, so
+        // a bad early capture gets replaced instead of poisoning every
+        // filter for the rest of the session.
+        if (!view.bgAllModels || library.models.length > view.bgAllModels.length) {
             view.bgAllModels = library.models.slice();
         }
 
