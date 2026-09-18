@@ -21,6 +21,7 @@ final class BG_Media_Grid
     {
         add_action('wp_enqueue_media', array(__CLASS__, 'enqueue_assets'));
         add_filter('ajax_query_attachments_args', array(__CLASS__, 'apply_folder_query_arg'));
+        add_filter('wp_prepare_attachment_for_js', array(__CLASS__, 'add_folder_to_js_data'), 10, 2);
     }
 
     /**
@@ -79,5 +80,23 @@ final class BG_Media_Grid
         }
 
         return $args;
+    }
+
+    /**
+     * Expose each attachment's folder on its JS/Backbone model. The Grid
+     * page's default library turns out to be a plain local collection
+     * (every attachment loaded into the browser once, not re-queried from
+     * the server per filter change like the Add Media modal's does), so
+     * without this, the client has no way to know which folder an
+     * already-loaded attachment belongs to for local filtering.
+     */
+    public static function add_folder_to_js_data(array $response, $attachment): array
+    {
+        $terms = get_the_terms($attachment->ID, BG_Folders::TAXONOMY);
+        $response[self::QUERY_ARG] = (!empty($terms) && !is_wp_error($terms))
+            ? (int)$terms[0]->term_id
+            : BG_Folders::UNCATEGORIZED_ID;
+
+        return $response;
     }
 }

@@ -76,24 +76,48 @@
         window.history.replaceState({}, '', url.toString());
     }
 
+    function attachmentFolderId(model) {
+        var value = model.get(data.queryArg);
+        return typeof value === 'number' ? value : data.allFilesId;
+    }
+
+    // The "Add Media" modal's library is typically a live wp.media.model.Query
+    // (server-paginated, refetches per filter change), but the Grid page's
+    // default library turns out to be a plain local Attachments collection -
+    // every attachment already loaded into the browser once, with no server
+    // round trip per filter. Each needs a different filtering mechanism, so
+    // detect which one we actually have rather than assuming either.
+    function isLiveQuery(library) {
+        return !!(wp.media.model.Query && library instanceof wp.media.model.Query);
+    }
+
+    function filterLocalLibrary(library, folderId) {
+        var source = (wp.media.model.Attachments && wp.media.model.Attachments.all)
+            ? wp.media.model.Attachments.all.models
+            : library.models;
+
+        var filtered = folderId === data.allFilesId
+            ? source.slice()
+            : source.filter(function (model) {
+                var value = attachmentFolderId(model);
+                return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
+            });
+
+        library.reset(filtered);
+    }
+
     function selectFolder(view, $sidebar, folderId) {
         var library = view.controller.state().get('library');
-        if (library && library.props) {
-            // Set the prop for the record (and so it's included in
-            // props.toJSON() below), but rely on neither an internal
-            // whitelist-triggered auto-refetch nor an "ignore"-prop
-            // listener - both are internal wp.media wiring we can't be
-            // certain exists/behaves the same way across versions. Instead,
-            // fetch directly: the collection's own sync() already sends
-            // props.toJSON() (which now includes bg_folder) as the query
-            // args to the same query-attachments AJAX action, and reset:
-            // true replaces the visible results outright once it resolves.
-            library.props.set(data.queryArg, folderId, { silent: true });
 
-            if (typeof library.fetch === 'function') {
-                library.fetch({ reset: true });
+        if (library) {
+            if (isLiveQuery(library)) {
+                library.props.set(data.queryArg, folderId);
+                library.props.set('ignore', (+new Date()));
+            } else {
+                filterLocalLibrary(library, folderId);
             }
         }
+
         setActiveFolder($sidebar, folderId);
         updateGridUrl(folderId);
     }
@@ -161,7 +185,7 @@
             });
 
             $sidebar.on('click', '.bg-grid-folder-option', function () {
-                selectFolder(view, $sidebar, $(this).attr('data-folder-id'));
+                selectFolder(view, $sidebar, parseInt($(this).attr('data-folder-id'), 10));
             });
 
             var initialFolder = data.allFilesId;
