@@ -506,7 +506,7 @@ final class BG_Settings
                     </tr>
                     <tr>
                         <th scope="row">
-                            <label for="<?php echo esc_attr(BG_Updater::OPTION_GITHUB_TOKEN); ?>">GitHub Access Token</label>
+                            <label for="<?php echo esc_attr(BG_Updater::OPTION_GITHUB_TOKEN); ?>">GitHub Access Token (optional)</label>
                         </th>
                         <td>
                             <input type="password"
@@ -517,10 +517,10 @@ final class BG_Settings
                                    autocomplete="off"
                                    placeholder="ghp_...">
                             <p class="description">
-                                A GitHub personal access token with read access to the private
-                                <code>smcniel24/gilde-gallery</code> repository. Required for the plugin to check for
-                                and download updates. <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Create a token</a>
-                                with read-only access to that repository's contents.
+                                <code>smcniel24/gilde-gallery</code> is a public repository, so updates work without a
+                                token. Only set this if the repository is made private again, or to raise GitHub's
+                                anonymous API rate limit. <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Create a token</a>
+                                with read-only access to that repository's contents if needed.
                             </p>
                         </td>
                     </tr>
