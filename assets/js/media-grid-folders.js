@@ -78,17 +78,18 @@
 
     function selectFolder(view, $sidebar, folderId) {
         var library = view.controller.state().get('library');
-        if (library && library.props) {
-            library.props.set(data.queryArg, folderId);
+        if (library && library.props && typeof library.mirror === 'function' && wp.media.query) {
+            var props = _.extend({}, library.props.toJSON());
+            props[data.queryArg] = folderId;
 
-            // wp.media.model.Query only auto-refetches when a *known* prop
-            // (search, mime type, orderby, etc.) changes - it silently
-            // ignores our custom bg_folder prop otherwise. _requery(true)
-            // is the same internal method that whitelisted change triggers,
-            // called directly so the grid actually re-fetches with it.
-            if (typeof library._requery === 'function') {
-                library._requery(true);
-            }
+            // wp.media.model.Query only auto-refetches on its own when a
+            // *known* prop changes (search, mime type, orderby, etc.) - it
+            // ignores our custom bg_folder prop otherwise. Building a fresh
+            // query with wp.media.query() and mirroring it into the existing
+            // library collection is the same swap-in-a-new-query mechanism
+            // core's own automatic path uses, just triggered directly.
+            library.props.set(data.queryArg, folderId);
+            library.mirror(wp.media.query(props));
         }
         setActiveFolder($sidebar, folderId);
         updateGridUrl(folderId);
