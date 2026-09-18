@@ -229,67 +229,70 @@ final class BG_Folders
      */
     private static function query_attachment_ids(int $folder_id): array
     {
-        if ($folder_id === self::ALL_FILES_ID) {
-            $ids = get_posts(array(
-                'post_type' => 'attachment',
-                'post_status' => 'inherit',
-                'posts_per_page' => -1,
-                'fields' => 'ids',
-                'orderby' => 'date',
-                'order' => 'DESC',
-            ));
-
-            return array_map('intval', $ids);
-        }
-
-        if ($folder_id === self::UNCATEGORIZED_ID) {
-            $ids = get_posts(array(
-                'post_type' => 'attachment',
-                'post_status' => 'inherit',
-                'posts_per_page' => -1,
-                'fields' => 'ids',
-                'orderby' => 'date',
-                'order' => 'DESC',
-                'tax_query' => array(
-                    array(
-                        'taxonomy' => self::TAXONOMY,
-                        'operator' => 'NOT EXISTS',
-                    ),
-                ),
-            ));
-
-            return array_map('intval', $ids);
-        }
-
-        if ($folder_id <= 0) {
+        if ($folder_id <= 0 && $folder_id !== self::ALL_FILES_ID && $folder_id !== self::UNCATEGORIZED_ID) {
             return array();
         }
 
-        $ids = get_posts(array(
+        $args = array(
             'post_type' => 'attachment',
             'post_status' => 'inherit',
             'posts_per_page' => -1,
             'fields' => 'ids',
             'orderby' => 'date',
             'order' => 'DESC',
-            'tax_query' => array(
-                array(
-                    'taxonomy' => self::TAXONOMY,
-                    'field' => 'term_id',
-                    'terms' => $folder_id,
-                    // WP_Query's tax_query defaults to including every
-                    // descendant term for a hierarchical taxonomy. A
-                    // folder should only ever show its own directly
-                    // assigned images - subfolder browsing is a separate,
-                    // explicit action via [bilde_folders] - so without
-                    // this, a parent folder's gallery silently included
-                    // every image from every folder beneath it too.
-                    'include_children' => false,
-                ),
-            ),
-        ));
+        );
+
+        $tax_query = self::get_tax_query_for_folder($folder_id);
+        if ($tax_query !== null) {
+            $args['tax_query'] = $tax_query;
+        }
+
+        $ids = get_posts($args);
 
         return array_map('intval', $ids);
+    }
+
+    /**
+     * Build the tax_query clause for a folder, including the virtual
+     * "All Files" (-1, no filter) and "Uncategorized" (0, unassigned)
+     * pseudo-folders. Shared by query_attachment_ids() and the
+     * ajax_query_attachments_args filter (BG_Media_Grid) so the native
+     * Media Library grid/modal and the frontend shortcodes apply the exact
+     * same folder-membership rules.
+     */
+    public static function get_tax_query_for_folder(int $folder_id): ?array
+    {
+        if ($folder_id === self::ALL_FILES_ID) {
+            return null;
+        }
+
+        if ($folder_id === self::UNCATEGORIZED_ID) {
+            return array(
+                array(
+                    'taxonomy' => self::TAXONOMY,
+                    'operator' => 'NOT EXISTS',
+                ),
+            );
+        }
+
+        if ($folder_id <= 0) {
+            return null;
+        }
+
+        return array(
+            array(
+                'taxonomy' => self::TAXONOMY,
+                'field' => 'term_id',
+                'terms' => $folder_id,
+                // WP_Query's tax_query defaults to including every
+                // descendant term for a hierarchical taxonomy. A folder
+                // should only ever show its own directly assigned images -
+                // subfolder browsing is a separate, explicit action - so
+                // without this, a parent folder silently included every
+                // image from every folder beneath it too.
+                'include_children' => false,
+            ),
+        );
     }
 
     /**

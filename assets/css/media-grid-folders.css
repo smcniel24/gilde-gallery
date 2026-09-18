@@ -1,0 +1,97 @@
+.attachments-browser.bg-has-folder-sidebar {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+.attachments-browser.bg-has-folder-sidebar .bg-grid-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.bg-grid-folder-sidebar {
+    flex: 0 0 220px;
+    max-width: 220px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #fff;
+    padding: 10px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+.bg-grid-folder-search {
+    width: 100%;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+.bg-grid-folder-tree,
+.bg-grid-folder-branch {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.bg-grid-folder-branch {
+    padding-left: 18px;
+    display: none;
+}
+.bg-grid-folder-node.expanded > .bg-grid-folder-branch {
+    display: block;
+}
+.bg-grid-folder-node {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.bg-grid-folder-node.filtered-hidden {
+    display: none;
+}
+.bg-grid-folder-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 18px;
+    height: 26px;
+    flex-shrink: 0;
+    color: #646970;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease;
+}
+.bg-grid-folder-node.expanded > .bg-grid-folder-toggle {
+    transform: rotate(90deg);
+}
+.bg-grid-folder-option {
+    flex-grow: 1;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 3px;
+    color: #1e293b;
+    font-size: 13px;
+}
+.bg-grid-folder-node:not(.has-children) .bg-grid-folder-option {
+    margin-left: 18px;
+}
+.bg-grid-folder-option:hover {
+    background: #f0f0f1;
+}
+.bg-grid-folder-option.active {
+    background: #2271b1;
+    color: #fff;
+}
+.bg-grid-folder-node.match-highlight > .bg-grid-folder-option {
+    background: #fef3c7;
+}
+
+@media (max-width: 782px) {
+    .attachments-browser.bg-has-folder-sidebar {
+        flex-direction: column;
+    }
+    .bg-grid-folder-sidebar {
+        max-width: none;
+        width: 100%;
+        max-height: 240px;
+    }
+}
