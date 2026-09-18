@@ -150,7 +150,16 @@
                 return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
             });
 
-        library.reset(filtered);
+        // Confirmed via live debugging: this exact reset() call, run
+        // manually from the console a moment later, correctly populates
+        // the collection AND updates the visible grid - but run
+        // synchronously inside the click handler itself, it produced 0
+        // models with no error. Something else appears to react to the
+        // same click/event cycle and interferes with it before it settles.
+        // Deferring to the next tick sidesteps whatever that is.
+        setTimeout(function () {
+            library.reset(filtered);
+        }, 0);
     }
 
     function selectFolder(view, $sidebar, folderId) {
