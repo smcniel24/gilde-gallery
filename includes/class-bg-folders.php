@@ -107,6 +107,12 @@ final class BG_Folders
             'hierarchical' => true,
             'public' => false,
             'show_ui' => true,
+            // Organize Folders (BG_Organize) is now the real management UI -
+            // hide the native flat taxonomy screen from the Media submenu so
+            // there's only one obvious place to manage folders. show_ui stays
+            // true so the screen (and any core functionality relying on it)
+            // still exists, just not linked in the menu.
+            'show_in_menu' => false,
             'show_admin_column' => true,
             'show_in_rest' => true,
             'rewrite' => false,
