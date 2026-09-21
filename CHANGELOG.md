@@ -2,6 +2,12 @@
 
 All notable changes to the BildeGallery plugin are documented in this file.
 
+## 1.1.0
+
+- **"Organize Folders" admin page**: a dedicated screen under Media for managing folders with drag-and-drop - separate from the Grid/Add Media picker sidebar, which stays focused on browsing and inserting images. Create nested folders, drag one or more selected images onto a folder to file them, drag a folder onto another folder's name to move it there, and drag a folder up/down (via a small grip handle) to reorder it among its siblings. Manual folder ordering is a small new addition to the data model (only written when a folder is actually reordered; anything untouched still sorts alphabetically as before). Rename and delete round out the page. This is purely additive - the List Mode bulk-move modal and the Grid/Add Media picker sidebar are unaffected.
+- **Clearer drag-and-drop feedback**: the drop-target highlight no longer competes with the plain hover state while dragging, the grid header shows a full breadcrumb trail ("Selected Folder: Gallery › White") instead of just the current folder's name, and every action (moving images, creating/renaming/deleting/reordering folders) now shows a floating toast with a spinner while it's working instead of an easy-to-miss inline status line.
+- **Decluttered the Media submenu**: the native, flat "Folders" taxonomy screen no longer appears in the menu now that Organize Folders is the real management UI, removing the confusion of two different folder-management screens.
+
 ## 1.0.0
 
 - **GitHub-based updates**: the plugin now checks tagged releases on its public GitHub repo and shows updates in the normal Plugins screen, plus a "Check for Updates" button on the Settings page.
