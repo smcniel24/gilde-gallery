@@ -144,9 +144,13 @@ final class BG_Folders
 
     /**
      * Build the full folder tree as an array of
-     * [id, text, title, parent, children] nodes, sorted alphabetically
-     * at every level. Same shape FileBird's Tree::getFolders() returned,
-     * so router/sitemap/shortcodes work against either unchanged.
+     * [id, text, title, parent, children] nodes. Each level sorts by the
+     * manual "bg_folder_order" term meta (set only when a folder is
+     * actually dragged to reorder in the Organize Folders page) first,
+     * falling back to alphabetical for anything never manually ordered -
+     * so untouched folders keep behaving exactly as before. Same shape
+     * FileBird's Tree::getFolders() returned, so router/sitemap/shortcodes
+     * work against either unchanged.
      */
     public static function get_tree(): array
     {
@@ -159,14 +163,18 @@ final class BG_Folders
         $terms = get_terms(array(
             'taxonomy' => self::TAXONOMY,
             'hide_empty' => false,
-            'orderby' => 'name',
-            'order' => 'ASC',
         ));
 
         if (is_wp_error($terms) || empty($terms)) {
             $tree = array();
             set_transient($cache_key, $tree, self::CACHE_TTL);
             return $tree;
+        }
+
+        $order_meta = array();
+        foreach ($terms as $term) {
+            $meta = get_term_meta($term->term_id, 'bg_folder_order', true);
+            $order_meta[$term->term_id] = ($meta === '' || $meta === false) ? null : (int)$meta;
         }
 
         $by_parent = array();
@@ -183,6 +191,30 @@ final class BG_Folders
                 'parent' => $parent,
             );
         }
+
+        foreach ($by_parent as &$siblings) {
+            usort($siblings, function ($a, $b) use ($order_meta) {
+                $order_a = $order_meta[$a['id']];
+                $order_b = $order_meta[$b['id']];
+
+                if ($order_a !== null && $order_b !== null) {
+                    return $order_a !== $order_b
+                        ? ($order_a <=> $order_b)
+                        : strcasecmp($a['text'], $b['text']);
+                }
+
+                if ($order_a !== null) {
+                    return -1;
+                }
+
+                if ($order_b !== null) {
+                    return 1;
+                }
+
+                return strcasecmp($a['text'], $b['text']);
+            });
+        }
+        unset($siblings);
 
         $tree = self::build_branch($by_parent, 0);
         set_transient($cache_key, $tree, self::CACHE_TTL);
@@ -345,5 +377,70 @@ final class BG_Folders
     {
         $result = wp_delete_term($folder_id, self::TAXONOMY);
         return $result === true;
+    }
+
+    /**
+     * Move a folder under a new parent (0 = top level). Rejects moving a
+     * folder into itself or into one of its own descendants - allowing
+     * that would create a circular parent chain, sending get_tree()'s
+     * recursive build_branch() into infinite recursion the next time
+     * anything requests the tree.
+     */
+    public static function move_folder(int $folder_id, int $new_parent_id): bool
+    {
+        if ($new_parent_id === $folder_id) {
+            return false;
+        }
+
+        if ($new_parent_id > 0 && self::is_within_subtree($folder_id, $new_parent_id)) {
+            return false;
+        }
+
+        $result = wp_update_term($folder_id, self::TAXONOMY, array('parent' => $new_parent_id));
+        return !is_wp_error($result);
+    }
+
+    /**
+     * Is $candidate_id equal to, or a descendant of, $ancestor_id?
+     */
+    private static function is_within_subtree(int $ancestor_id, int $candidate_id): bool
+    {
+        $current_id = $candidate_id;
+
+        while ($current_id > 0) {
+            $term = get_term($current_id, self::TAXONOMY);
+            if (!$term || is_wp_error($term)) {
+                return false;
+            }
+
+            if ((int)$term->parent === $ancestor_id) {
+                return true;
+            }
+
+            $current_id = (int)$term->parent;
+        }
+
+        return false;
+    }
+
+    /**
+     * Persist a manual display order for one parent's full set of
+     * children. Called with the complete new sibling order every time a
+     * folder is dragged to reorder - recomputing the whole group (rather
+     * than fractional "insert between" math) keeps the values simple and
+     * avoids float-precision creep over repeated drags.
+     */
+    public static function reorder_siblings(int $parent_id, array $ordered_folder_ids): bool
+    {
+        foreach ($ordered_folder_ids as $index => $folder_id) {
+            update_term_meta((int)$folder_id, 'bg_folder_order', $index);
+        }
+
+        // update_term_meta() doesn't fire 'saved_term', so it wouldn't
+        // otherwise trigger the cache-version bump that keeps get_tree()
+        // from serving a stale (unsorted) result.
+        self::bump_cache_version();
+
+        return true;
     }
 }
