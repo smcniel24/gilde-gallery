@@ -25,15 +25,70 @@
 }
 .bg-organize-grid-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    font-weight: 600;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f1;
 }
-.bg-organize-status {
-    font-weight: 400;
-    color: #64748b;
+.bg-organize-grid-header-label {
     font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8c8f94;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.bg-organize-breadcrumb {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+.bg-organize-breadcrumb .bg-organize-crumb-sep {
+    color: #a7aaad;
+    font-weight: 400;
+    margin: 0 6px;
+}
+
+/* Toast: shown while an action is processing, auto-hides shortly after
+   it resolves - replaces a plain inline status line that was easy to
+   miss and could look "stuck" once set. */
+.bg-organize-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translateX(-50%);
+    z-index: 160000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+}
+.bg-organize-toast[hidden] {
+    display: none;
+}
+.bg-organize-toast.bg-organize-toast-error {
+    background: #7f1d1d;
+}
+.bg-organize-toast-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    animation: bg-organize-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+.bg-organize-toast.bg-organize-toast-error .bg-organize-toast-spinner {
+    display: none;
+}
+@keyframes bg-organize-spin {
+    to { transform: rotate(360deg); }
 }
 
 /* Tree */
@@ -104,10 +159,20 @@
     background: #2271b1;
     color: #fff;
 }
+/* While something is being dragged, the plain :hover background competes
+   visually with the blue drop-target indicator - suppress it so only the
+   drop indicator itself signals which folder will receive the drop. */
+body.bg-organize-dragging .bg-organize-option:hover {
+    background: none;
+}
+body.bg-organize-dragging .bg-organize-option.active:hover {
+    background: #2271b1;
+}
 .bg-organize-option.bg-drop-hover {
     outline: 2px dashed #2271b1;
     outline-offset: -2px;
-    background: #e0f2fe;
+    background: #e0f2fe !important;
+    color: #1e293b;
 }
 .bg-organize-actions {
     display: none;

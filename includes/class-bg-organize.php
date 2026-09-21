@@ -111,11 +111,16 @@ final class BG_Organize
 
                 <div class="bg-organize-main">
                     <div class="bg-organize-grid-header">
-                        <span id="bg-organize-current-folder">Select a folder to view its images</span>
-                        <span class="bg-organize-status" id="bg-organize-status" aria-live="polite"></span>
+                        <span class="bg-organize-grid-header-label">Selected Folder:</span>
+                        <span id="bg-organize-current-folder" class="bg-organize-breadcrumb">Select a folder to view its images</span>
                     </div>
                     <div class="bg-organize-grid" id="bg-organize-grid"></div>
                 </div>
+            </div>
+
+            <div class="bg-organize-toast" id="bg-organize-toast" hidden aria-live="polite">
+                <span class="bg-organize-toast-spinner"></span>
+                <span class="bg-organize-toast-message" id="bg-organize-toast-message"></span>
             </div>
         </div>
         <?php

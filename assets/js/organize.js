@@ -8,12 +8,26 @@
     var $tree = $('#bg-organize-tree');
     var $grid = $('#bg-organize-grid');
     var $currentLabel = $('#bg-organize-current-folder');
-    var $status = $('#bg-organize-status');
+    var $toast = $('#bg-organize-toast');
+    var $toastMessage = $('#bg-organize-toast-message');
     var currentFolderId = null;
     var selectedIds = [];
+    var toastHideTimer = null;
 
-    function setStatus(text) {
-        $status.text(text || '');
+    // Shown while an action is in flight (no auto-hide), then either
+    // auto-hides shortly after success or stays a bit longer as an error.
+    function showToast(message, options) {
+        options = options || {};
+        clearTimeout(toastHideTimer);
+        $toastMessage.text(message);
+        $toast.toggleClass('bg-organize-toast-error', !!options.error).prop('hidden', false);
+        if (options.autoHideMs) {
+            toastHideTimer = setTimeout(hideToast, options.autoHideMs);
+        }
+    }
+
+    function hideToast() {
+        $toast.prop('hidden', true);
     }
 
     function organizeAction(action, data) {
@@ -24,15 +38,40 @@
         return (response && response.data && response.data.message) || fallback;
     }
 
+    // Walks up from a folder's option button through its ancestor nodes to
+    // build a "Parent › Child" breadcrumb for the grid header.
+    function buildBreadcrumb($option) {
+        var names = [$option.data('folder-name') || $option.text().trim()];
+
+        $option.closest('li.bg-organize-node').parents('li.bg-organize-node').each(function () {
+            var name = $(this).children('.bg-organize-row').find('.bg-organize-option').first().data('folder-name');
+            if (name) {
+                names.unshift(name);
+            }
+        });
+
+        return names;
+    }
+
+    function renderBreadcrumb(names) {
+        $currentLabel.empty();
+        names.forEach(function (name, index) {
+            if (index > 0) {
+                $currentLabel.append('<span class="bg-organize-crumb-sep">›</span>');
+            }
+            $currentLabel.append($('<span></span>').text(name));
+        });
+    }
+
     // ---- Thumbnail grid ----
 
-    function loadFolder(folderId, label) {
+    function loadFolder(folderId, breadcrumbNames) {
         currentFolderId = folderId;
         selectedIds = [];
 
         $tree.find('.bg-organize-option').removeClass('active');
         $tree.find('.bg-organize-option[data-folder-id="' + folderId + '"]').addClass('active');
-        $currentLabel.text(label || '');
+        renderBreadcrumb(breadcrumbNames || []);
         $grid.html('<div class="bg-organize-grid-empty">Loading…</div>');
 
         organizeAction('bg_organize_get_folder_attachments', { folder_id: folderId }).done(function (response) {
@@ -90,6 +129,8 @@
                 var $this = $(this);
                 var id = parseInt($this.data('attachment-id'), 10);
 
+                $('body').addClass('bg-organize-dragging');
+
                 // Dragging a thumbnail that isn't part of the current
                 // selection drags just that one image instead.
                 if (selectedIds.indexOf(id) === -1) {
@@ -97,6 +138,9 @@
                     selectedIds = [id];
                     $this.addClass('selected');
                 }
+            },
+            stop: function () {
+                $('body').removeClass('bg-organize-dragging');
             },
             helper: function () {
                 var id = parseInt($(this).data('attachment-id'), 10);
@@ -116,7 +160,7 @@
     }
 
     function moveAttachments(ids, folderId) {
-        setStatus('Moving…');
+        showToast(ids.length > 1 ? 'Moving ' + ids.length + ' images…' : 'Moving image…');
 
         $.post(bgOrganize.ajaxUrl, {
             action: bgOrganize.bulkMoveAction,
@@ -125,10 +169,10 @@
             attachment_ids: ids,
         }).done(function (response) {
             if (response && response.success) {
-                setStatus('Moved ' + response.data.moved + ' item(s).');
-                loadFolder(currentFolderId, $currentLabel.text());
+                showToast('Moved ' + response.data.moved + ' item(s).', { autoHideMs: 1500 });
+                loadFolder(currentFolderId, buildBreadcrumb($tree.find('.bg-organize-option.active')));
             } else {
-                setStatus(errorMessage(response, 'Something went wrong.'));
+                showToast(errorMessage(response, 'Something went wrong.'), { error: true, autoHideMs: 4000 });
             }
         });
     }
@@ -141,6 +185,8 @@
             return;
         }
 
+        showToast('Creating folder…');
+
         organizeAction('bg_organize_create_folder', { name: name, parent_id: parentId }).done(function (response) {
             if (response && response.success) {
                 // A new node has to appear at a specific nested position in
@@ -148,7 +194,7 @@
                 // than hand-build the right <li> and re-wire its widgets.
                 window.location.reload();
             } else {
-                setStatus(errorMessage(response, 'Could not create that folder.'));
+                showToast(errorMessage(response, 'Could not create that folder.'), { error: true, autoHideMs: 4000 });
             }
         });
     }
@@ -159,19 +205,23 @@
             return;
         }
 
+        showToast('Renaming folder…');
+
         organizeAction('bg_organize_rename_folder', { folder_id: folderId, name: name }).done(function (response) {
             if (response && response.success) {
-                $tree.find('.bg-organize-option[data-folder-id="' + folderId + '"]')
+                var $option = $tree.find('.bg-organize-option[data-folder-id="' + folderId + '"]')
                     .text(name)
                     .attr('data-folder-name', name);
                 $tree.find('.bg-organize-rename[data-folder-id="' + folderId + '"]').attr('data-folder-name', name);
                 $tree.find('.bg-organize-delete[data-folder-id="' + folderId + '"]').attr('data-folder-name', name);
 
                 if (currentFolderId === folderId) {
-                    $currentLabel.text(name);
+                    renderBreadcrumb(buildBreadcrumb($option));
                 }
+
+                hideToast();
             } else {
-                setStatus(errorMessage(response, 'Could not rename that folder.'));
+                showToast(errorMessage(response, 'Could not rename that folder.'), { error: true, autoHideMs: 4000 });
             }
         });
     }
@@ -181,6 +231,8 @@
             return;
         }
 
+        showToast('Deleting folder…');
+
         organizeAction('bg_organize_delete_folder', { folder_id: folderId }).done(function (response) {
             if (response && response.success) {
                 // Deleting a folder can reparent its own children up a
@@ -189,19 +241,19 @@
                 // replicate that restructuring client-side.
                 window.location.reload();
             } else {
-                setStatus(errorMessage(response, 'Could not delete that folder.'));
+                showToast(errorMessage(response, 'Could not delete that folder.'), { error: true, autoHideMs: 4000 });
             }
         });
     }
 
     function moveFolder(folderId, newParentId) {
-        setStatus('Moving folder…');
+        showToast('Moving folder…');
 
         organizeAction('bg_organize_move_folder', { folder_id: folderId, new_parent_id: newParentId }).done(function (response) {
             if (response && response.success) {
                 window.location.reload();
             } else {
-                setStatus(errorMessage(response, "Can't move a folder into itself or one of its own subfolders."));
+                showToast(errorMessage(response, "Can't move a folder into itself or one of its own subfolders."), { error: true, autoHideMs: 4000 });
             }
         });
     }
@@ -214,18 +266,27 @@
             tolerance: 'pointer',
             start: function (event, ui) {
                 ui.item.addClass('bg-dragging-folder');
+                $('body').addClass('bg-organize-dragging');
             },
             stop: function (event, ui) {
                 ui.item.removeClass('bg-dragging-folder');
+                $('body').removeClass('bg-organize-dragging');
 
                 var parentId = parseInt($list.data('parent-id'), 10) || 0;
                 var orderedIds = $list.children('li.bg-organize-node').map(function () {
                     return parseInt($(this).data('folder-id'), 10);
                 }).get();
 
+                showToast('Saving order…');
                 organizeAction('bg_organize_reorder_siblings', {
                     parent_id: parentId,
                     ordered_ids: orderedIds,
+                }).done(function (response) {
+                    if (response && response.success) {
+                        showToast('Order saved.', { autoHideMs: 1200 });
+                    } else {
+                        showToast(errorMessage(response, 'Could not save that order.'), { error: true, autoHideMs: 4000 });
+                    }
                 });
             },
         });
@@ -244,6 +305,12 @@
                 appendTo: 'body',
                 zIndex: 100000,
                 cursor: 'move',
+                start: function () {
+                    $('body').addClass('bg-organize-dragging');
+                },
+                stop: function () {
+                    $('body').removeClass('bg-organize-dragging');
+                },
             });
         }
 
@@ -285,7 +352,7 @@
 
         $tree.on('click', '.bg-organize-option', function () {
             var $btn = $(this);
-            loadFolder(parseInt($btn.data('folder-id'), 10), $btn.data('folder-name') || $btn.text().trim());
+            loadFolder(parseInt($btn.data('folder-id'), 10), buildBreadcrumb($btn));
         });
 
         $tree.on('click', '.bg-organize-add-child', function (event) {
