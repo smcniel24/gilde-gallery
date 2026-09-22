@@ -151,6 +151,20 @@
             }
             var freshLibrary = view.controller.state().get('library');
             freshLibrary.reset(response.data.items);
+
+            // We just fetched the complete, correct set for this folder in
+            // one shot - there's nothing further that should ever load.
+            // Without this, the collection's own built-in infinite-scroll
+            // still fires as the user scrolls and appends more items from
+            // its own unfiltered internal logic, undoing the filter (seen
+            // live on a client site: correct results initially, then
+            // unrelated images getting appended while scrolling).
+            freshLibrary.more = function () {
+                return $.Deferred().resolve().promise();
+            };
+            freshLibrary.hasMore = function () {
+                return false;
+            };
         });
     }
 
