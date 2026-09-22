@@ -16,12 +16,14 @@ if (!defined('ABSPATH')) {
 final class BG_Media_Grid
 {
     const QUERY_ARG = 'bg_folder';
+    const NONCE_ACTION = 'bg_media_grid_nonce';
 
     public static function init(): void
     {
         add_action('wp_enqueue_media', array(__CLASS__, 'enqueue_assets'));
         add_filter('ajax_query_attachments_args', array(__CLASS__, 'apply_folder_query_arg'));
         add_filter('wp_prepare_attachment_for_js', array(__CLASS__, 'add_folder_to_js_data'), 10, 2);
+        add_action('wp_ajax_bg_media_grid_folder_attachments', array(__CLASS__, 'ajax_get_folder_attachments'));
     }
 
     /**
@@ -56,6 +58,8 @@ final class BG_Media_Grid
             'uncategorizedLabel' => BG_Folders::get_folder_label(BG_Folders::UNCATEGORIZED_ID),
             'queryArg' => self::QUERY_ARG,
             'urlParam' => 'bg_folder_filter',
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce(self::NONCE_ACTION),
         ));
     }
 
@@ -98,5 +102,44 @@ final class BG_Media_Grid
             : BG_Folders::UNCATEGORIZED_ID;
 
         return $response;
+    }
+
+    /**
+     * Return the full, authoritative attachment list for a folder, for the
+     * Grid page's local (non-Query) library to reset() itself to.
+     *
+     * That library only ever holds whatever's currently loaded into the
+     * browser (it grows as you scroll), so filtering it client-side against
+     * a snapshot silently misses any of a folder's images that just hadn't
+     * been paginated into view yet on a large library - it happened to work
+     * on small test libraries purely because everything was always already
+     * loaded. Fetching the real list from the database here, the same way
+     * BG_Organize's page already does successfully, sidesteps that
+     * entirely instead of relying on whatever the browser happens to have.
+     */
+    public static function ajax_get_folder_attachments(): void
+    {
+        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+
+        if (!current_user_can('upload_files')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions.'), 403);
+        }
+
+        $folder_id = isset($_POST['folder_id']) ? (int)$_POST['folder_id'] : null;
+        if ($folder_id === null) {
+            wp_send_json_error(array('message' => 'No folder specified.'), 400);
+        }
+
+        $ids = BG_Folders::get_attachment_ids($folder_id);
+        $items = array();
+
+        foreach ($ids as $id) {
+            $data = wp_prepare_attachment_for_js($id);
+            if ($data) {
+                $items[] = $data;
+            }
+        }
+
+        wp_send_json_success(array('items' => $items));
     }
 }

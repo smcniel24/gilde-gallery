@@ -130,38 +130,28 @@
         return !!(wp.media.model.Query && library instanceof wp.media.model.Query);
     }
 
-    function filterLocalLibrary(view, library, folderId) {
-        // Cache plain attribute data (not live Backbone model objects) from
-        // a pristine, pre-filtering snapshot. Re-using the same model
-        // *instances* across multiple reset() calls proved unreliable -
-        // once a model is reset out of the collection, WP's media models
-        // appear to do internal cleanup that leaves them unusable if
-        // reset back in later (re-selecting "All Files" after visiting a
-        // folder showed nothing instead of everything, even though the
-        // exact same cached objects were being passed back in). Passing
-        // plain attribute hashes to reset() instead makes Backbone build
-        // brand-new model instances each time, sidestepping that entirely.
-        //
-        // Only accept a new snapshot when it's at least as large as what's
-        // already cached, so a capture that fires before the library has
-        // fully loaded can't permanently lock in an incomplete result.
-        if (!view.bgAllAttrs || library.models.length > view.bgAllAttrs.length) {
-            view.bgAllAttrs = library.models.map(function (model) {
-                return model.toJSON();
-            });
-        }
-
-        var filtered = folderId === data.allFilesId
-            ? view.bgAllAttrs.slice()
-            : view.bgAllAttrs.filter(function (attrs) {
-                var value = typeof attrs[data.queryArg] === 'number' ? attrs[data.queryArg] : data.allFilesId;
-                return folderId === data.uncategorizedId ? (value <= 0) : (value === folderId);
-            });
-
-        setTimeout(function () {
+    function filterLocalLibrary(view, folderId) {
+        // The Grid page's local library only ever holds whatever's
+        // currently loaded into the browser (it grows as you scroll), so
+        // filtering a client-side snapshot of it silently misses any of a
+        // folder's images that just hadn't been paginated into view yet on
+        // a large library - this worked fine in testing purely because a
+        // small library is always loaded in full. Fetching the real,
+        // authoritative list from the server on every folder click
+        // (the same way BG_Organize's page already does successfully)
+        // sidesteps that entirely instead of trusting whatever the browser
+        // happens to already have.
+        $.post(data.ajaxUrl, {
+            action: 'bg_media_grid_folder_attachments',
+            nonce: data.nonce,
+            folder_id: folderId,
+        }).done(function (response) {
+            if (!response || !response.success) {
+                return;
+            }
             var freshLibrary = view.controller.state().get('library');
-            freshLibrary.reset(filtered);
-        }, 0);
+            freshLibrary.reset(response.data.items);
+        });
     }
 
     function selectFolder(view, $sidebar, folderId) {
@@ -172,7 +162,7 @@
                 library.props.set(data.queryArg, folderId);
                 library.props.set('ignore', (+new Date()));
             } else {
-                filterLocalLibrary(view, library, folderId);
+                filterLocalLibrary(view, folderId);
             }
         }
 
