@@ -53,7 +53,7 @@
         return names;
     }
 
-    function renderBreadcrumb(names) {
+    function renderBreadcrumb(names, folderId) {
         $currentLabel.empty();
         names.forEach(function (name, index) {
             if (index > 0) {
@@ -61,6 +61,7 @@
             }
             $currentLabel.append($('<span></span>').text(name));
         });
+        $currentLabel.append($('<span class="bg-organize-folder-id"></span>').text('(folder id: ' + folderId + ')'));
     }
 
     // ---- Thumbnail grid ----
@@ -71,7 +72,7 @@
 
         $tree.find('.bg-organize-option').removeClass('active');
         $tree.find('.bg-organize-option[data-folder-id="' + folderId + '"]').addClass('active');
-        renderBreadcrumb(breadcrumbNames || []);
+        renderBreadcrumb(breadcrumbNames || [], folderId);
         $grid.html('<div class="bg-organize-grid-empty">Loading…</div>');
 
         organizeAction('bg_organize_get_folder_attachments', { folder_id: folderId }).done(function (response) {
@@ -216,7 +217,7 @@
                 $tree.find('.bg-organize-delete[data-folder-id="' + folderId + '"]').attr('data-folder-name', name);
 
                 if (currentFolderId === folderId) {
-                    renderBreadcrumb(buildBreadcrumb($option));
+                    renderBreadcrumb(buildBreadcrumb($option), folderId);
                 }
 
                 hideToast();

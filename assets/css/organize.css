@@ -49,6 +49,12 @@
     font-weight: 400;
     margin: 0 6px;
 }
+.bg-organize-breadcrumb .bg-organize-folder-id {
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #8c8f94;
+}
 
 /* Toast: shown while an action is processing, auto-hides shortly after
    it resolves - replaces a plain inline status line that was easy to
