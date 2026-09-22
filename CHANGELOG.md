@@ -2,6 +2,10 @@
 
 All notable changes to the BildeGallery plugin are documented in this file.
 
+## 1.1.1
+
+- **Folder ID visible again in Organize Folders**: hiding the native taxonomy screen in 1.1.0 removed the easiest way to look up a folder ID for shortcodes/blocks. The breadcrumb header now shows it directly, e.g. "Selected Folder: Projects › White (folder id: 5)".
+
 ## 1.1.0
 
 - **"Organize Folders" admin page**: a dedicated screen under Media for managing folders with drag-and-drop - separate from the Grid/Add Media picker sidebar, which stays focused on browsing and inserting images. Create nested folders, drag one or more selected images onto a folder to file them, drag a folder onto another folder's name to move it there, and drag a folder up/down (via a small grip handle) to reorder it among its siblings. Manual folder ordering is a small new addition to the data model (only written when a folder is actually reordered; anything untouched still sorts alphabetically as before). Rename and delete round out the page. This is purely additive - the List Mode bulk-move modal and the Grid/Add Media picker sidebar are unaffected.
