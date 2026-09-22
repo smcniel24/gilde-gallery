@@ -5,6 +5,8 @@ All notable changes to the BildeGallery plugin are documented in this file.
 ## 1.1.1
 
 - **Folder ID visible again in Organize Folders**: hiding the native taxonomy screen in 1.1.0 removed the easiest way to look up a folder ID for shortcodes/blocks. The breadcrumb header now shows it directly, e.g. "Selected Folder: Projects › White (folder id: 5)".
+- **Copyable shortcode box**: selecting a folder in Organize Folders now shows a ready-to-paste `[bilde_gallery folder_id="…" columns="3" size="large" title="My Gallery"]` shortcode with its folder ID already filled in, plus a Copy button.
+- **Creating a folder no longer collapses the tree**: adding a folder (especially a nested subfolder) now happens entirely over AJAX - the new folder is inserted directly into the tree in place, its parent (and all of that parent's own ancestors) expand automatically so it's actually visible, and it opens immediately in the grid pane. Previously this reloaded the whole page, collapsing everything back to the default view.
 
 ## 1.1.0
 
