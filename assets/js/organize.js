@@ -208,6 +208,47 @@
 
     // ---- Folder tree ----
 
+    // Builds a new folder <li> matching the shape class-bg-organize.php's
+    // render_tree_nodes() outputs server-side, so a freshly created folder
+    // looks and behaves identically to one rendered on page load.
+    function buildFolderNode(id, name) {
+        var $row = $('<div class="bg-organize-row"></div>');
+        $row.append('<span class="bg-organize-grip" title="Drag to reorder"><i class="bi bi-grip-vertical" aria-hidden="true"></i></span>');
+        $row.append(
+            $('<button type="button" class="bg-organize-option"></button>')
+                .attr('data-folder-id', id)
+                .attr('data-folder-name', name)
+                .text(name)
+        );
+
+        var $actions = $('<span class="bg-organize-actions"></span>');
+        $actions.append($('<button type="button" class="bg-organize-add-child" aria-label="Add subfolder"><i class="bi bi-folder-plus" aria-hidden="true"></i></button>').attr('data-folder-id', id));
+        $actions.append($('<button type="button" class="bg-organize-rename" aria-label="Rename"><i class="bi bi-pencil" aria-hidden="true"></i></button>').attr('data-folder-id', id).attr('data-folder-name', name));
+        $actions.append($('<button type="button" class="bg-organize-delete" aria-label="Delete"><i class="bi bi-trash" aria-hidden="true"></i></button>').attr('data-folder-id', id).attr('data-folder-name', name));
+        $row.append($actions);
+
+        return $('<li class="bg-organize-node"></li>')
+            .attr('data-folder-id', id)
+            .append($row)
+            .append($('<ul class="bg-organize-branch"></ul>').attr('data-parent-id', id));
+    }
+
+    // A folder with no children yet has no toggle button at all (matching
+    // the PHP render) - add one the first time it gains a child.
+    function ensureExpandable($li) {
+        if ($li.hasClass('has-children')) {
+            return;
+        }
+        $li.addClass('has-children');
+        $li.children('.bg-organize-row').find('.bg-organize-grip')
+            .after('<button type="button" class="bg-organize-toggle" aria-expanded="false" aria-label="Expand"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>');
+    }
+
+    function expandNode($li) {
+        $li.addClass('expanded');
+        $li.children('.bg-organize-row').find('.bg-organize-toggle').attr('aria-expanded', 'true');
+    }
+
     function createFolder(parentId) {
         var name = window.prompt(parentId ? 'New subfolder name:' : 'New folder name:');
         if (!name) {
@@ -217,14 +258,38 @@
         showToast('Creating folder…');
 
         organizeAction('bg_organize_create_folder', { name: name, parent_id: parentId }).done(function (response) {
-            if (response && response.success) {
-                // A new node has to appear at a specific nested position in
-                // the tree - simplest and most reliable is to reload rather
-                // than hand-build the right <li> and re-wire its widgets.
-                window.location.reload();
-            } else {
+            if (!response || !response.success) {
                 showToast(errorMessage(response, 'Could not create that folder.'), { error: true, autoHideMs: 4000 });
+                return;
             }
+
+            var newId = response.data.id;
+            var $newNode = buildFolderNode(newId, name);
+            var $targetList;
+
+            if (parentId > 0) {
+                var $parentLi = $tree.find('li.bg-organize-node[data-folder-id="' + parentId + '"]');
+                ensureExpandable($parentLi);
+                expandNode($parentLi);
+                $parentLi.parents('li.bg-organize-node').each(function () {
+                    expandNode($(this));
+                });
+                $targetList = $parentLi.children('.bg-organize-branch');
+            } else {
+                $targetList = $tree;
+            }
+
+            // Every .bg-organize-branch (and the top-level tree itself) is
+            // already sortable-initialized from page load, even while
+            // empty - refresh rather than re-initialize.
+            $targetList.append($newNode).sortable('refresh');
+            initSortableList($newNode.children('.bg-organize-branch'));
+
+            var $newOption = $newNode.find('.bg-organize-option').first();
+            initFolderDragDrop($newOption);
+
+            showToast('Folder created.', { autoHideMs: 1200 });
+            loadFolder(newId, buildBreadcrumb($newOption));
         });
     }
 
