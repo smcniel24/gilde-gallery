@@ -2,6 +2,10 @@
 
 All notable changes to the BildeGallery plugin are documented in this file.
 
+## 1.1.2
+
+- **Fixed the Grid/Add Media folder sidebar showing incomplete results on larger media libraries**: on sites with more attachments than fit in one initial batch, selecting a folder there could show only a random subset of that folder's images instead of all of them, because the sidebar was filtering whatever happened to already be loaded into the browser rather than the real, complete list. It now fetches the authoritative attachment list for the selected folder directly from the database on every click, the same reliable approach the Organize Folders page already used. This only affected the Grid view/Add Media modal picker - the frontend shortcodes/blocks and the Organize Folders page were never affected.
+
 ## 1.1.1
 
 - **Folder ID visible again in Organize Folders**: hiding the native taxonomy screen in 1.1.0 removed the easiest way to look up a folder ID for shortcodes/blocks. The breadcrumb header now shows it directly, e.g. "Selected Folder: Projects › White (folder id: 5)".
