@@ -8,6 +8,8 @@
     var $tree = $('#bg-organize-tree');
     var $grid = $('#bg-organize-grid');
     var $currentLabel = $('#bg-organize-current-folder');
+    var $shortcodeRow = $('#bg-organize-shortcode-row');
+    var $shortcodeInput = $('#bg-organize-shortcode');
     var $toast = $('#bg-organize-toast');
     var $toastMessage = $('#bg-organize-toast-message');
     var currentFolderId = null;
@@ -64,6 +66,28 @@
         $currentLabel.append($('<span class="bg-organize-folder-id"></span>').text('(folder id: ' + folderId + ')'));
     }
 
+    function copyShortcode() {
+        var input = $shortcodeInput.get(0);
+        input.focus();
+        input.select();
+
+        var copied = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(input.value).then(function () {
+                showToast('Shortcode copied.', { autoHideMs: 1200 });
+            });
+            return;
+        }
+
+        try {
+            copied = document.execCommand('copy');
+        } catch (e) {
+            copied = false;
+        }
+
+        showToast(copied ? 'Shortcode copied.' : 'Press Ctrl+C / Cmd+C to copy.', { autoHideMs: 1500 });
+    }
+
     // ---- Thumbnail grid ----
 
     function loadFolder(folderId, breadcrumbNames) {
@@ -73,6 +97,10 @@
         $tree.find('.bg-organize-option').removeClass('active');
         $tree.find('.bg-organize-option[data-folder-id="' + folderId + '"]').addClass('active');
         renderBreadcrumb(breadcrumbNames || [], folderId);
+
+        $shortcodeInput.val('[bilde_gallery folder_id="' + folderId + '" columns="3" size="large" title="My Gallery"]');
+        $shortcodeRow.prop('hidden', false);
+
         $grid.html('<div class="bg-organize-grid-empty">Loading…</div>');
 
         organizeAction('bg_organize_get_folder_attachments', { folder_id: folderId }).done(function (response) {
@@ -373,6 +401,10 @@
 
         $('#bg-organize-new-folder').on('click', function () {
             createFolder(0);
+        });
+
+        $('#bg-organize-copy-shortcode').on('click', function () {
+            copyShortcode();
         });
 
         initSortableList($tree);

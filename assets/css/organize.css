@@ -27,9 +27,24 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
+    margin-bottom: 12px;
+}
+.bg-organize-shortcode-row {
+    display: flex;
+    gap: 8px;
     margin-bottom: 16px;
-    padding-bottom: 12px;
+    padding-bottom: 16px;
     border-bottom: 1px solid #f0f0f1;
+}
+.bg-organize-shortcode-row[hidden] {
+    display: none;
+}
+.bg-organize-shortcode-input {
+    flex: 1 1 auto;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    background: #f6f7f7;
+    color: #1e293b;
 }
 .bg-organize-grid-header-label {
     font-size: 12px;

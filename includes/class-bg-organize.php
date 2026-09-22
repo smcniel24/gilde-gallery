@@ -114,6 +114,10 @@ final class BG_Organize
                         <span class="bg-organize-grid-header-label">Selected Folder:</span>
                         <span id="bg-organize-current-folder" class="bg-organize-breadcrumb">Select a folder to view its images</span>
                     </div>
+                    <div class="bg-organize-shortcode-row" id="bg-organize-shortcode-row" hidden>
+                        <input type="text" id="bg-organize-shortcode" class="bg-organize-shortcode-input" readonly onclick="this.select();" aria-label="Gallery shortcode for this folder">
+                        <button type="button" class="button" id="bg-organize-copy-shortcode">Copy</button>
+                    </div>
                     <div class="bg-organize-grid" id="bg-organize-grid"></div>
                 </div>
             </div>
