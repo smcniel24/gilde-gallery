@@ -2,6 +2,10 @@
 
 All notable changes to the BildeGallery plugin are documented in this file.
 
+## 1.1.3
+
+- **Fixed unrelated images appearing while scrolling a filtered folder** in the Grid/Add Media picker: after 1.1.2's fix loaded the correct images for a folder, scrolling could still trigger that view's own built-in infinite-scroll behavior, which appended further images using its own unfiltered logic - undoing the filter for anyone with enough images in a folder to need to scroll. The picker now fetches the complete result for a folder in one request and stops any further auto-loading for it, since there's nothing left to load.
+
 ## 1.1.2
 
 - **Fixed the Grid/Add Media folder sidebar showing incomplete results on larger media libraries**: on sites with more attachments than fit in one initial batch, selecting a folder there could show only a random subset of that folder's images instead of all of them, because the sidebar was filtering whatever happened to already be loaded into the browser rather than the real, complete list. It now fetches the authoritative attachment list for the selected folder directly from the database on every click, the same reliable approach the Organize Folders page already used. This only affected the Grid view/Add Media modal picker - the frontend shortcodes/blocks and the Organize Folders page were never affected.
